@@ -25,25 +25,25 @@ public class UserController {
     // GET user by id
     @GetMapping("/{id}")
     public UserDTO getUserById(@PathVariable Long id) {
-        return userService.getUserById(id); // lanza ResourceNotFoundException si no existe
+        return userService.getUserById(id);
     }
 
     // POST create new user
     @PostMapping
     public UserDTO createUser(@RequestBody UserDTO userDTO) {
-        return userService.saveUser(userDTO); // lanza BadRequestException si email ya existe
+        return userService.saveUser(userDTO);
     }
 
     // PUT update existing user
     @PutMapping("/{id}")
     public UserDTO updateUser(@PathVariable Long id,
                               @RequestBody UserDTO userDTO) {
-        return userService.updateUser(id, userDTO); // lanza ResourceNotFoundException o BadRequestException
+        return userService.updateUser(id, userDTO);
     }
 
     // DELETE user by id
     @DeleteMapping("/{id}")
     public void deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id); // lanza ResourceNotFoundException si no existe
+        userService.deleteUser(id);
     }
 }
