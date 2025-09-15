@@ -2,6 +2,7 @@ package com.example.GestionBibliotecaUsuarios.dto;
 
 import lombok.*;
 
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -11,7 +12,6 @@ public class BookDTO {
     private String title;
     private String author;
     private int units;
-
     private boolean active;
-
+    private boolean available;
 }

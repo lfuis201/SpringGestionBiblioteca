@@ -43,7 +43,7 @@ public class ReservationService {
         return reservations;
     }
 
-    public ReservationDTO createReservation(Long userId, Long bookId) {
+    public ReservationDTO createReservation(Long userId, Long bookId, ReservationDTO reservationDTO) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
 
@@ -58,18 +58,22 @@ public class ReservationService {
             throw new BadRequestException("No units available for this book");
         }
 
+        // restar 1 unidad del libro
         book.setUnits(book.getUnits() - 1);
         bookRepository.save(book);
 
+        // ✅ Usar returnDate del DTO si viene, sino null
         Reservation reservation = Reservation.builder()
                 .user(user)
                 .book(book)
-                .reservationDate(LocalDate.now())
+                .reservationDate(LocalDate.now()) // siempre se define como fecha actual
+                .returnDate(reservationDTO.getReturnDate()) // permite fecha de devolución opcional
                 .active(true)
                 .build();
 
         return reservationMapper.toDTO(reservationRepository.save(reservation));
     }
+
 
     public ReservationDTO returnBook(Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
@@ -88,4 +92,73 @@ public class ReservationService {
 
         return reservationMapper.toDTO(reservationRepository.save(reservation));
     }
+
+    public ReservationDTO getReservationById(Long id) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id " + id));
+
+        return reservationMapper.toDTO(reservation);
+    }
+
+    public ReservationDTO updateReservation(Long id, ReservationDTO reservationDTO) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id " + id));
+
+        if (!reservation.isActive()) {
+            throw new BadRequestException("Cannot update an inactive reservation with id " + id);
+        }
+
+        // Por simplicidad: solo permitir actualizar returnDate
+        reservation.setReturnDate(reservationDTO.getReturnDate());
+        return reservationMapper.toDTO(reservationRepository.save(reservation));
+    }
+
+
+
+    // 🔹 Soft delete con mensaje
+    public String deactivateReservation(Long id) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id " + id));
+
+        if (!reservation.isActive()) {
+            throw new BadRequestException("Reservation with id " + id + " is already inactive");
+        }
+
+        reservation.setActive(false);
+        reservation.setReturnDate(LocalDate.now());
+        reservationRepository.save(reservation);
+
+        return "Reservation with id " + id + " has been deactivated successfully.";
+    }
+
+    // 🔹 Hard delete con mensaje
+    public String deleteReservation(Long id) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id " + id));
+
+        reservationRepository.delete(reservation);
+        return "Reservation with id " + id + " has been permanently deleted.";
+    }
+
+    public List<ReservationDTO> getReservationsByUser(Long userId) {
+        // validar que el usuario exista
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        // traer todas las reservas y filtrar por usuario
+        List<Reservation> reservations = reservationRepository.findAll()
+                .stream()
+                .filter(res -> res.getUser().getId().equals(userId))
+                .toList();
+
+        if (reservations.isEmpty()) {
+            throw new ResourceNotFoundException("No reservations found for user with id " + userId);
+        }
+
+        return reservations.stream()
+                .map(reservationMapper::toDTO)
+                .toList();
+    }
+
+
 }
